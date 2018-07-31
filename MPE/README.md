@@ -1,6 +1,6 @@
 # Multiple points of Equilibrium search and interpolation function
 
-This function is written to go into an output file filled with simulation values hot temperature, cold temperature and cooling power's and find the two points of equilibrium. A explination and discription of the MPE can be found in the REF 1. 
+This function is written to go into an output file filled with simulation values hot temperature, cold temperature and cooling power's and find the two points of equilibrium. A explanation and description of the MPE can be found in the REF 1. 
 
 
 ## References
