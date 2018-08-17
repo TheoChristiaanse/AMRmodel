@@ -7,8 +7,14 @@ Some changes are made to code used in **REF 1** because the material and fluid d
 
 
 
+## Reference list
+
 **REF 1:** Implementing Experimental and Device losses in the AMR modelling. -  T.V. Christiaanse (Submitted to International Journal of Refrigeration)
+
 **REF 2:** P. V. Trevizoli, “Development of thermal regenerators for magnetic cooling applications,” Ph. D. Thesis, Federal University of Santa Catarina, Florianópolis, SC, Brazil, 2015.
+
 **REF 3:** R. Bjørk, C. R. H. Bahl, and M. Katter, “Magnetocaloric properties of LaFe<sub>13-x-y</sub>Co<sub>x</sub>Si<sub>y</sub> and commercial grade Gd,” Journal of Magnetism and Magnetic Materials, vol. 322, no. 24, pp. 3882–3888, Dec. 2010.
+
 **REF 4:** D. Bohne, S. Fischer, and E. Obermeier, “Thermal Conductivity, Density, Viscosity, and Prandtl-Numbers of Ethylene Glycol-Water Mixtures.,” pp. 739–742.
+
 **REF 5:** J. M. D. Coey, Magnetism and Magnetic Materials. Cambridge University Press, 2010.
