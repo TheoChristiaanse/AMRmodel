@@ -209,9 +209,9 @@ def SolveFluid(iynext,isnext,yprev,sprev,Vd,    Cf,   Kfe,   Kfw,     Ff, Omegaf
         for j in range(N-1):  # This will loop through 1 to N+1 which aligns with 0->N
             # Build tridagonal matrix coefficients
             # pg 112-113 Theo Christiaanse 2017
-            Aw=alpha_pow(2*Ff[j]/Kfw[j])
-            Ae=alpha_pow(2*Ff[j+1]/Kfe[j])
-            a[j] = -Ff[j]/(dx)+Ae*CF*Kfw[j]/(dx*2)+Omegaf[j+1]/2
+            Aw=alpha_pow(Ff[j]/Kfw[j])
+            Ae=alpha_pow(Ff[j+1]/Kfe[j])
+            a[j] = -Ff[j]/(dx)+Aw*CF*Kfw[j]/(dx*2)+Omegaf[j+1]/2
             b[j] = Cf[j+1]/(dt)-Aw*CF*Kfw[j]/(2*dx)-Ae*CF*Kfe[j]/(2*dx)+CL*Lf[j+1]/2+Omegaf[j+1]/2+Ff[j+1]/(dx)
             c[j] = Ae*CF*Kfe[j]/(dx*2)
             d[j] = yprev[j]*(-Aw*CF*Kfw[j]/(2*dx)) + yprev[j+1]*(Cf[j+1]/dt+Aw*CF*Kfw[j]/(dx*2)+Ae*CF*Kfe[j]/(dx*2) - CL*Lf[j+1]/2) + yprev[j+2]*(-Ae*CF*Kfe[j]/(dx*2)) + yamb[j+1]*(CL*Lf[j+1])+isnext[j+1]*(Omegaf[j+1]/2)+sprev[j+1]*(Omegaf[j+1]/2)+CVD*Sp[j+1]
@@ -231,8 +231,8 @@ def SolveFluid(iynext,isnext,yprev,sprev,Vd,    Cf,   Kfe,   Kfw,     Ff, Omegaf
         for j in range(N-1):  # This will loop through 1 to N+1 which aligns with 0->N
             # Build tridagonal matrix coefficients
             # pg 112-113 Theo Christiaanse 2017
-            Aw=alpha_pow(2*Ff[j+1]/Kfw[j])
-            Ae=alpha_pow(2*Ff[j+2]/Kfe[j])
+            Aw=alpha_pow([j+1]/Kfw[j])
+            Ae=alpha_pow([j+2]/Kfe[j])
             a[j] = Aw*CF*Kfw[j]/(dx*2)
             b[j] = Cf[j+1]/dt-Aw*CF*Kfw[j]/(2*dx)-Ae*CF*Kfe[j]/(2*dx)+CL*Lf[j+1]/2+Omegaf[j+1]/2-Ff[j+1]/(dx)
             c[j] = Ff[j+2]/(dx)+Ae*CF*Kfe[j]/(dx*2)+Omegaf[j+1]/2
@@ -787,25 +787,29 @@ def runActive(caseNum,Thot,Tcold,cen_loc,Tambset,dispV,ff,CF,CS,CL,CVD,CMCE,node
 
                 for i in range(N - 1):
                     # Fluid Conduction term west of the P node
-                    Kfw[i] = ((1 - fr[i]) / (A_c[i] * e_r[i] * k[i])
-                              + (fr[i]) / (A_c[i+1] * e_r[i+1] * k[i+1])) ** -1
+                    Kfw[i] = (((1 - fr[i])*DX) / (A_c[i] * e_r[i] * k[i])
+                              + (fr[i]*DX) / (A_c[i+1] * e_r[i+1] * k[i+1])) ** -1
                     # Fluid Conduction term east of the P node
-                    Kfe[i] = ((1 - fr[i+1]) / (A_c[i+1] * e_r[i+1] * k[i+1])
-                              + (fr[i+1]) / (A_c[i+2] * e_r[i+2] * k[i+2])) ** -1
+                    Kfe[i] = (((1 - fr[i+1])*DX) / (A_c[i+1] * e_r[i+1] * k[i+1])
+                              + (fr[i+1]*DX) / (A_c[i+2] * e_r[i+2] * k[i+2])) ** -1
                     # Solid Conduction term
                     if ks[i]==0 or ks[i+1]==0:
                         Ksw[i] =0
                     else:
                         # Conduction term west of the P node
-                        Ksw[i] = ((1 - fr[i]) / (A_c[i] * e_r[i] * ks[i])
-                                + (fr[i]) / (A_c[i+1] * e_r[i+1] * ks[i+1])) ** -1
+                        Ksw[i] = ( ((1 - fr[i])*DX) / (A_c[i] * e_r[i] * ks[i])
+                                + (fr[i]*DX) / (A_c[i+1] * e_r[i+1] * ks[i+1])) ** -1
                     if ks[i+1]==0 or ks[i+2]==0:
                         Kse[i] =0
                     else:
                         # Conduction term east of the P node
-                        Kse[i] = ((1 - fr[i+1]) / (A_c[i+1] * e_r[i+1] * ks[i+1])
-                                + (fr[i+1]) / (A_c[i+2] * e_r[i+2] * ks[i+2])) ** -1
+                        Kse[i] = (((1 - fr[i+1])*DX) / (A_c[i+1] * e_r[i+1] * ks[i+1])
+                                + (fr[i+1]*DX) / (A_c[i+2] * e_r[i+2] * ks[i+2])) ** -1
                 Omegas = np.copy(Omegaf)
+                Kfw = Kfw * 1/L_tot
+                Kfe = Kfe * 1/L_tot
+                Ksw = Ksw * 1/L_tot
+                Kse = Kse * 1/L_tot
 
 
                 ################################################################
