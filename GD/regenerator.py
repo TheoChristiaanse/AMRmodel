@@ -140,20 +140,20 @@ def SolveSolid(iynext, isnext, yprev, sprev, Vd,    Cs,   Kse,   Ksw, Omegas,  S
     c = np.zeros(N-1)
     d = np.zeros(N-1)
     snext = np.zeros(N+1)
-    if Vd>=0:
+    if Vd>0:
         # Add a value at the start
         # Add bc, value to the start of the flow
         for j in range(N-1): # note range will give numbers from 0->N-2
             # Build tridagonal matrix coefficients
             # pg. 115 Theo Christiaanse 2017
-            a[j] = CS*Ksw[j]/(dx*2)
-            b[j] = Cs[j+1]/dt-CS*Ksw[j]/(dx*2)-CS*Kse[j]/(dx*2)+Omegas[j+1]/2
-            c[j] = CS*Kse[j]/(dx*2)
-            d[j] = (iynext[j]+iynext[j+1])*Omegas[j+1]/2+ sprev[j]*(-CS*Ksw[j]/(2*dx)) + sprev[j+1]*(Cs[j+1]/dt-Omegas[j+1]/2+CS*Ksw[j]/(2*dx)+CS*Kse[j]/(2*dx)) + sprev[j+2]*(-CS*Kse[j]/(2*dx)) + CMCE*Smce[j+1]
+            a[j] = -CS*Ksw[j]/(dx*2)
+            b[j] = Cs[j+1]/dt+CS*Ksw[j]/(dx*2)+CS*Kse[j]/(dx*2)+Omegas[j+1]/2
+            c[j] = -CS*Kse[j]/(dx*2)
+            d[j] = (iynext[j]+iynext[j+1])*Omegas[j+1]/2+ sprev[j]*(CS*Ksw[j]/(2*dx)) + sprev[j+1]*(Cs[j+1]/dt-Omegas[j+1]/2-CS*Ksw[j]/(2*dx)-CS*Kse[j]/(2*dx)) + sprev[j+2]*(CS*Kse[j]/(2*dx)) + CMCE*Smce[j+1]
         # Add in BC
-        # Neumann @ i=1
+        # Neumann @ i=0
         b[0] = b[0]  + a[0]
-        # Neumann @ i=-2
+        # Neumann @ i=-1
         b[-1]= b[-1] + c[-1]
         # Solve the unknown matrix 1-> N-1
         snext[1:-1] = TDMAsolver(a[1:], b, c[:-1], d)
@@ -166,10 +166,10 @@ def SolveSolid(iynext, isnext, yprev, sprev, Vd,    Cs,   Kse,   Ksw, Omegas,  S
         for j in range(N-1):  # This will loop through 0 to N-1 which aligns with 1->N-1
             # Build tridagonal matrix coefficients
             # pg. 115 Theo Christiaanse 2017
-            a[j] = CS*Ksw[j]/(dx*2)
-            b[j] = Cs[j+1]/dt-CS*Ksw[j]/(dx*2)-CS*Kse[j]/(dx*2)+Omegas[j+1]/2
-            c[j] = CS*Kse[j]/(dx*2)
-            d[j] = (iynext[j+1]+iynext[j+2])*Omegas[j+1]/2+sprev[j]*(-CS*Ksw[j]/(2*dx)) + sprev[j+1]*(Cs[j+1]/dt+CS*Ksw[j]/(2*dx)+CS*Kse[j]/(2*dx)-Omegas[j+1]/2) + sprev[j+2]*(-CS*Kse[j]/(2*dx)) + CMCE*Smce[j+1]
+            a[j] = -CS*Ksw[j]/(dx*2)
+            b[j] = Cs[j+1]/dt+CS*Ksw[j]/(dx*2)+CS*Kse[j]/(dx*2)+Omegas[j+1]/2
+            c[j] = -CS*Kse[j]/(dx*2)
+            d[j] = (iynext[j+1]+iynext[j+2])*Omegas[j+1]/2+sprev[j]*(CS*Ksw[j]/(2*dx)) + sprev[j+1]*(Cs[j+1]/dt-CS*Ksw[j]/(2*dx)-CS*Kse[j]/(2*dx)-Omegas[j+1]/2) + sprev[j+2]*(CS*Kse[j]/(2*dx)) + CMCE*Smce[j+1]
         # Add in BC
         # Neumann @ i=0
         b[0] = b[0]  + a[0]
@@ -182,7 +182,11 @@ def SolveSolid(iynext, isnext, yprev, sprev, Vd,    Cs,   Kse,   Ksw, Omegas,  S
         snext[0]  = snext[1]
         return snext
 
-
+@jit(f8(f8),nopython=True)
+def alpha_pow(Pe):
+    # Powerlaw
+    val = (1-0.1*abs(Pe))**5
+    return max(0,val)
 
 
 ######################################## FLUID SOLVER ##############################################
@@ -201,7 +205,7 @@ def SolveFluid(iynext,isnext,yprev,sprev,Vd,    Cf,   Kfe,   Kfw,     Ff, Omegaf
     c = np.zeros(N-1)
     d = np.zeros(N-1)
     ynext = np.zeros(N+1)
-    if Vd>=0:
+    if Vd>0:
         # Add a value at the start
         # Add bc, value to the start of the flow
         # Dirichlet ghost node
@@ -211,10 +215,10 @@ def SolveFluid(iynext,isnext,yprev,sprev,Vd,    Cf,   Kfe,   Kfw,     Ff, Omegaf
             # pg 112-113 Theo Christiaanse 2017
             Aw=alpha_pow(Ff[j]/Kfw[j])
             Ae=alpha_pow(Ff[j+1]/Kfe[j])
-            a[j] = -Ff[j]/(dx)+Aw*CF*Kfw[j]/(dx*2)+Omegaf[j+1]/2
-            b[j] = Cf[j+1]/(dt)-Aw*CF*Kfw[j]/(2*dx)-Ae*CF*Kfe[j]/(2*dx)+CL*Lf[j+1]/2+Omegaf[j+1]/2+Ff[j+1]/(dx)
-            c[j] = Ae*CF*Kfe[j]/(dx*2)
-            d[j] = yprev[j]*(-Aw*CF*Kfw[j]/(2*dx)) + yprev[j+1]*(Cf[j+1]/dt+Aw*CF*Kfw[j]/(dx*2)+Ae*CF*Kfe[j]/(dx*2) - CL*Lf[j+1]/2) + yprev[j+2]*(-Ae*CF*Kfe[j]/(dx*2)) + yamb[j+1]*(CL*Lf[j+1])+isnext[j+1]*(Omegaf[j+1]/2)+sprev[j+1]*(Omegaf[j+1]/2)+CVD*Sp[j+1]
+            a[j] = -Ff[j]/(dx)-Aw*CF*Kfw[j]/(dx*2)+Omegaf[j+1]/2
+            b[j] = Cf[j+1]/(dt)+Aw*CF*Kfw[j]/(2*dx)+Ae*CF*Kfe[j]/(2*dx)+CL*Lf[j+1]/2+Omegaf[j+1]/2+Ff[j+1]/(dx)
+            c[j] = -Ae*CF*Kfe[j]/(dx*2)
+            d[j] = yprev[j]*(Aw*CF*Kfw[j]/(2*dx)) + yprev[j+1]*(Cf[j+1]/dt-Aw*CF*Kfw[j]/(dx*2)-Ae*CF*Kfe[j]/(dx*2) - CL*Lf[j+1]/2) + yprev[j+2]*(Ae*CF*Kfe[j]/(dx*2)) + yamb[j+1]*(CL*Lf[j+1])+isnext[j+1]*(Omegaf[j+1]/2)+sprev[j+1]*(Omegaf[j+1]/2)+CVD*Sp[j+1]
         # Add in bc
         # Dirichlet @ i=0
         d[0] = d[0]  - a[0]*ynext[0]
@@ -231,12 +235,12 @@ def SolveFluid(iynext,isnext,yprev,sprev,Vd,    Cf,   Kfe,   Kfw,     Ff, Omegaf
         for j in range(N-1):  # This will loop through 1 to N+1 which aligns with 0->N
             # Build tridagonal matrix coefficients
             # pg 112-113 Theo Christiaanse 2017
-            Aw=alpha_pow([j+1]/Kfw[j])
-            Ae=alpha_pow([j+2]/Kfe[j])
-            a[j] = Aw*CF*Kfw[j]/(dx*2)
-            b[j] = Cf[j+1]/dt-Aw*CF*Kfw[j]/(2*dx)-Ae*CF*Kfe[j]/(2*dx)+CL*Lf[j+1]/2+Omegaf[j+1]/2-Ff[j+1]/(dx)
-            c[j] = Ff[j+2]/(dx)+Ae*CF*Kfe[j]/(dx*2)+Omegaf[j+1]/2
-            d[j] = yprev[j]*(-Aw*CF*Kfw[j]/(dx*2)) + yprev[j+1]*(Cf[j+1]/dt+Aw*CF*Kfw[j]/(dx*2)+Ae*CF*Kfe[j]/(dx*2)-CL*Lf[j+1]/2) + yprev[j+2]*(-Ae*CF*Kfe[j]/(dx*2)) + yamb[j+1]*(CL*Lf[j+1]) + isnext[j+1]*(Omegaf[j+1]/2) + sprev[j+1]*(Omegaf[j+1]/2) + CVD*Sp[j+1]
+            Aw=alpha_pow(Ff[j+1]/Kfw[j])
+            Ae=alpha_pow(Ff[j+2]/Kfe[j])
+            a[j] = -Aw*CF*Kfw[j]/(2*dx)
+            b[j] = Cf[j+1]/dt+Aw*CF*Kfw[j]/(2*dx)+Ae*CF*Kfe[j]/(2*dx)+CL*Lf[j+1]/2+Omegaf[j+1]/2-Ff[j+1]/(dx)
+            c[j] = Ff[j+2]/(dx)-Ae*CF*Kfe[j]/(2*dx)+Omegaf[j+1]/2
+            d[j] = yprev[j]*(Aw*CF*Kfw[j]/(2*dx)) + yprev[j+1]*(Cf[j+1]/dt-Aw*CF*Kfw[j]/(dx*2)-Ae*CF*Kfe[j]/(dx*2)-CL*Lf[j+1]/2) + yprev[j+2]*(Ae*CF*Kfe[j]/(dx*2)) + yamb[j+1]*(CL*Lf[j+1]) + isnext[j+1]*(Omegaf[j+1]/2) + sprev[j+1]*(Omegaf[j+1]/2) + CVD*Sp[j+1]
         # Add in bc
         # Dirichlet @ i=0
         d[-1] = d[-1] - c[-1] * ynext[-1]
@@ -806,10 +810,10 @@ def runActive(caseNum,Thot,Tcold,cen_loc,Tambset,dispV,ff,CF,CS,CL,CVD,CMCE,node
                         Kse[i] = (((1 - fr[i+1])*DX) / (A_c[i+1] * e_r[i+1] * ks[i+1])
                                 + (fr[i+1]*DX) / (A_c[i+2] * e_r[i+2] * ks[i+2])) ** -1
                 Omegas = np.copy(Omegaf)
-                Kfw = Kfw * 1/L_tot
-                Kfe = Kfe * 1/L_tot
-                Ksw = Ksw * 1/L_tot
-                Kse = Kse * 1/L_tot
+                Kfw = Kfw /(DX*L_tot)
+                Kfe = Kfe /(DX*L_tot)
+                Ksw = Ksw /(DX*L_tot)
+                Kse = Kse /(DX*L_tot)
 
 
                 ################################################################
